@@ -7,7 +7,6 @@ metadata:
   generation: 1
   labels:
     app: kubernetes-bootcamp
-    foo: https://user:pass@example.com:80/path?query=val#fragment
   name: kubernetes-bootcamp
   namespace: default
   resourceVersion: "246826"
@@ -29,6 +28,7 @@ spec:
       creationTimestamp: null
       labels:
         app: kubernetes-bootcamp
+        foo: https://user:pass@example.com:80/path?query=val#fragment
     spec:
       containers:
       - image: gcr.io/google-samples/kubernetes-bootcamp:v1

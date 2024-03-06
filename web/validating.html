@@ -21,7 +21,7 @@
 	<meta charset="utf-8">
 	<title>ValidatingAdmissionPolicy Playground</title>
 	<link rel="stylesheet" type="text/css" href="dist/nice-select2.css">
-	<link rel="stylesheet" type="text/css" href="assets/css/validating_styles.css">
+	<link rel="stylesheet" type="text/css" href="assets/css/k8s_styles.css">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -116,6 +116,9 @@
 					<div class="tab">
 						<button class="tab-links" id="original-resource-button">Original Content</button>
 						<button class="tab-links" id="updated-resource-button">Updated Content</button>
+						<button class="tab-links" id="namespace-button">Namespace</button>
+						<button class="tab-links" id="request-button">Request</button>
+						<button class="tab-links" id="authorizer-button">Authorizer</button>
 						<button disabled id="run" class="button button-primary" style="float: right;">
 							Run
 						</button>
@@ -129,6 +132,21 @@
 						<div id="updated-resource-tab" class="tab-content">
 							<div id="updated-resource-content" class="editor">
 								<div id="data-input-updated" class="editor__input"></div>
+							</div>
+						</div>
+						<div id="namespace-tab" class="tab-content">
+							<div id="namespace-content" class="editor">
+								<div id="data-input-namespace" class="editor__input"></div>
+							</div>
+						</div>
+						<div id="request-tab" class="tab-content">
+							<div id="request-content" class="editor">
+								<div id="data-input-request" class="editor__input"></div>
+							</div>
+						</div>
+						<div id="authorizer-tab" class="tab-content">
+							<div id="authorizer-content" class="editor">
+								<div id="data-input-authorizer" class="editor__input"></div>
 							</div>
 						</div>
 					</div>

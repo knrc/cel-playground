@@ -31,6 +31,7 @@ func main() {
 
 	defer addFunction("eval", evalWrapper).Release()
 	defer addFunction("vapEval", validatingAdmissionPolicyWrapper).Release()
+	defer addFunction("webhookEval", webhookWrapper).Release()
 	<-make(chan bool)
 }
 
@@ -61,14 +62,35 @@ func evalWrapper(_ js.Value, args []js.Value) any {
 
 // ValidatingAdmissionPolicy functionality
 func validatingAdmissionPolicyWrapper(_ js.Value, args []js.Value) any {
-	if len(args) < 3 {
+	if len(args) < 6 {
 		return response("", errors.New("invalid arguments"))
 	}
 	policy := []byte(args[0].String())
 	originalValue := []byte(args[1].String())
 	updatedValue := []byte(args[2].String())
+	namespace := []byte(args[3].String())
+	request := []byte(args[4].String())
+	authorizer := []byte(args[5].String())
 
-	output, err := k8s.EvalValidatingAdmissionPolicy(policy, originalValue, updatedValue)
+	output, err := k8s.EvalValidatingAdmissionPolicy(policy, originalValue, updatedValue, namespace, request, authorizer)
+	if err != nil {
+		return response("", err)
+	}
+	return response(output, nil)
+}
+
+// Webhook functionality
+func webhookWrapper(_ js.Value, args []js.Value) any {
+	if len(args) < 5 {
+		return response("", errors.New("invalid arguments"))
+	}
+	policy := []byte(args[0].String())
+	originalValue := []byte(args[1].String())
+	updatedValue := []byte(args[2].String())
+	request := []byte(args[3].String())
+	authorizer := []byte(args[4].String())
+
+	output, err := k8s.EvalWebhook(policy, originalValue, updatedValue, request, authorizer)
 	if err != nil {
 		return response("", err)
 	}

@@ -24,47 +24,86 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+type evalResponse struct {
+	name       string
+	val        ref.Val
+	details    *cel.EvalDetails
+	messageVal ref.Val
+	message    string
+}
+
+type evalResponses []*evalResponse
+
+func newEvalResponseErr(operation, expression string, err error) *evalResponse {
+	return &evalResponse{
+		val: types.NewErr("Unexpected error %s expression %s: %v", operation, expression, err),
+	}
+}
+
+func newEvalResponse(name string, exprEval ref.Val, details *cel.EvalDetails, message string, messageVal ref.Val) *evalResponse {
+	return &evalResponse{
+		name:       name,
+		val:        exprEval,
+		details:    details,
+		messageVal: messageVal,
+		message:    message,
+	}
+}
+
 type lazyVariableEval struct {
 	name string
 	ast  *cel.Ast
-	val  *ref.Val
+	val  *evalResponse
 }
 
 func (lve *lazyVariableEval) eval(env *cel.Env, activation interpreter.Activation) ref.Val {
 	val := lve.evalExpression(env, activation)
-	lve.val = &val
-	return val
+	lve.val = val
+	return val.val
 }
 
-func (lve *lazyVariableEval) evalExpression(env *cel.Env, activation interpreter.Activation) ref.Val {
+func (lve *lazyVariableEval) evalExpression(env *cel.Env, activation interpreter.Activation) *evalResponse {
 	prog, err := env.Program(lve.ast, celProgramOptions...)
 	if err != nil {
-		return types.NewErr("Unexpected error parsing expression %s: %v", lve.name, err)
+		return newEvalResponseErr("parsing", lve.name, err)
 	}
-	val, _, err := prog.Eval(activation)
+	val, details, err := prog.Eval(activation)
 	if err != nil {
-		return types.NewErr("Unexpected error parsing expression %s: %v", lve.name, err)
+		return newEvalResponseErr("evaluating", lve.name, err)
 	}
-	return val
+	return newEvalResponse(lve.name, val, details, "", nil)
 }
+
+type lazyEvalMap map[string]*lazyVariableEval
 
 type EvalVariable struct {
 	Name  string  `json:"name"`
 	Value any     `json:"value"`
+	Cost  *uint64 `json:"cost,omitempty"`
 	Error *string `json:"error,omitempty"`
 }
 
-type EvalValidation struct {
-	Result any     `json:"result"`
-	Error  *string `json:"error,omitempty"`
+type EvalResult struct {
+	Name    *string `json:"name,omitempty"`
+	Result  any     `json:"result,omitempty"`
+	Cost    *uint64 `json:"cost,omitempty"`
+	Error   *string `json:"error,omitempty"`
+	Message any     `json:"message,omitempty"`
 }
 
 type EvalResponse struct {
-	Variables   []EvalVariable   `json:"variables,omitempty"`
-	Validations []EvalValidation `json:"validations,omitempty"`
+	MatchConditionsVariables []*EvalVariable `json:"matchConditionVariables,omitempty"`
+	MatchConditions          []*EvalResult   `json:"matchConditions,omitempty"`
+	ValidationVariables      []*EvalVariable `json:"validationVariables,omitempty"`
+	Validations              []*EvalResult   `json:"validations,omitempty"`
+	AuditAnnotations         []*EvalResult   `json:"auditAnnotations,omitempty"`
+	WebhookMatchConditions   [][]*EvalResult `json:"webhookMatchConditions,omitempty"`
 }
 
 func getResults(val *ref.Val) (any, *string) {
+	if val == nil || *val == nil {
+		return nil, nil
+	}
 	value := (*val).Value()
 	if err, ok := value.(error); ok {
 		errResponse := err.Error()
@@ -78,28 +117,72 @@ func getResults(val *ref.Val) (any, *string) {
 	}
 }
 
-func generateResponse(variableLazyEvals map[string]*lazyVariableEval, validationEvals []ref.Val) *EvalResponse {
-	variables := []EvalVariable{}
-	for _, varLazyEval := range variableLazyEvals {
-		if varLazyEval.val != nil {
-			value, err := getResults(varLazyEval.val)
-			variables = append(variables, EvalVariable{
+func getCost(details *cel.EvalDetails) *uint64 {
+	if details == nil {
+		return nil
+	}
+	return details.ActualCost()
+}
+
+func generateEvalVariables(names []string, lazyEvals lazyEvalMap) []*EvalVariable {
+	variables := []*EvalVariable{}
+	for _, name := range names {
+		if varLazyEval, ok := lazyEvals[name]; ok && varLazyEval.val != nil {
+			value, err := getResults(&varLazyEval.val.val)
+			variables = append(variables, &EvalVariable{
 				Name:  varLazyEval.name,
 				Value: value,
+				Cost:  getCost(varLazyEval.val.details),
 				Error: err,
 			})
 		}
 	}
-	validations := []EvalValidation{}
-	for _, validationEval := range validationEvals {
-		value, err := getResults(&validationEval)
-		validations = append(validations, EvalValidation{
-			Result: value,
-			Error:  err,
+	return variables
+}
+
+func generateEvalResults(responses evalResponses) []*EvalResult {
+	evals := []*EvalResult{}
+	for _, eval := range responses {
+		value, err := getResults(&eval.val)
+		var message any
+		if eval.messageVal != nil {
+			message, _ = getResults(&eval.messageVal)
+		} else if eval.message != "" {
+			message = eval.message
+		}
+		var name *string
+		if eval.name != "" {
+			name = &eval.name
+		}
+		evals = append(evals, &EvalResult{
+			Name:    name,
+			Result:  value,
+			Cost:    getCost(eval.details),
+			Error:   err,
+			Message: message,
 		})
 	}
+	return evals
+}
+
+func generateEvalArrayResults(responses []evalResponses) [][]*EvalResult {
+	evalsArray := [][]*EvalResult{}
+	for _, response := range responses {
+		evals := generateEvalResults(response)
+		evalsArray = append(evalsArray, evals)
+	}
+	return evalsArray
+}
+
+func generateEvalResponse(matchConditionsVariableNames []string, matchConditionsVariableLazyEvals lazyEvalMap, matchConditionsEvals evalResponses,
+	validationVariableNames []string, validationVariableLazyEvals lazyEvalMap, validationEvals evalResponses,
+	auditAnnotationEvals evalResponses, webhookMatchConditionsEvals []evalResponses) *EvalResponse {
 	return &EvalResponse{
-		Variables:   variables,
-		Validations: validations,
+		MatchConditionsVariables: generateEvalVariables(matchConditionsVariableNames, matchConditionsVariableLazyEvals),
+		MatchConditions:          generateEvalResults(matchConditionsEvals),
+		ValidationVariables:      generateEvalVariables(validationVariableNames, validationVariableLazyEvals),
+		Validations:              generateEvalResults(validationEvals),
+		AuditAnnotations:         generateEvalResults(auditAnnotationEvals),
+		WebhookMatchConditions:   generateEvalArrayResults(webhookMatchConditionsEvals),
 	}
 }

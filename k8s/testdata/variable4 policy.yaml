@@ -12,6 +12,6 @@ spec:
       resources:   ["deployments"]
   variables:
     - name: foo
-      expression: "'foo' in object.metadata.labels ? url(object.metadata.labels['foo']).getQuery() : null"
+      expression: "'foo' in object.spec.template.metadata.labels ? url(object.spec.template.metadata.labels['foo']).getQuery() : null"
   validations:
     - expression: variables.foo != null

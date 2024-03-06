@@ -12,6 +12,9 @@ spec:
       resources:   ["deployments"]
   variables:
     - name: foo
-      expression: "'foo' in object.metadata.labels ? object.metadata.labels['foo'] : 'default'"
+      expression: "'foo' in object.spec.template.metadata.labels ? object.spec.template.metadata.labels['foo'] : 'default'"
   validations:
     - expression: variables.foo == 'bar'
+  auditAnnotations:
+    - key: "foo-label"
+      valueExpression: "'Label for foo is set to ' + variables.foo"

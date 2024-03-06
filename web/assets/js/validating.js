@@ -32,30 +32,48 @@ if (!WebAssembly.instantiateStreaming) {
 const celEditor = new AceEditor("vap-input");
 const dataEditorOriginal = new AceEditor("data-input-original");
 const dataEditorUpdated = new AceEditor("data-input-updated");
+const dataEditorNamespace = new AceEditor("data-input-namespace");
+const dataEditorRequest = new AceEditor("data-input-request");
+const dataEditorAuthorizer = new AceEditor("data-input-authorizer");
 
 function run() {
   const dataOriginal = dataEditorOriginal.getValue();
   const dataUpdated = dataEditorUpdated.getValue();
+  const dataNamespace = dataEditorNamespace.getValue();
+  const dataRequest = dataEditorRequest.getValue();
+  const dataAuthorizer = dataEditorAuthorizer.getValue();
   const expression = celEditor.getValue();
   const output = document.getElementById("output");
 
   output.value = "Evaluating...";
-  const result = vapEval(expression, dataOriginal, dataUpdated);
+  const result = vapEval(expression, dataOriginal, dataUpdated, dataNamespace, dataRequest, dataAuthorizer);
 
   const { output: resultOutput, isError } = result;
-  output.value = `${resultOutput}`;
-  output.style.color = isError ? "red" : "white";
+  if (isError) {
+    output.value = resultOutput;
+    output.style.color = "red";
+  } else {
+    const obj = JSON.parse(resultOutput);
+    output.value = JSON.stringify(obj, null, 2);
+    output.style.color = "white";
+  }
 }
 
 
 function share() {
   const dataOriginal = dataEditorOriginal.getValue();
   const dataUpdated = dataEditorUpdated.getValue();
+  const dataNamespace = dataEditorNamespace.getValue();
+  const dataRequest = dataEditorRequest.getValue();
+  const dataAuthorizer = dataEditorAuthorizer.getValue();
   const expression = celEditor.getValue();
 
   const obj = {
     dataOriginal: dataOriginal,
     dataUpdated: dataUpdated,
+    dataNamespace: dataNamespace,
+    dataRequest: dataRequest,
+    dataAuthorizer: dataAuthorizer,
     expression: expression,
   };
 
@@ -93,6 +111,9 @@ if (urlParams.has("content")) {
     celEditor.setValue(obj.expression, -1);
     dataEditorOriginal.setValue(obj.dataOriginal, -1);
     dataEditorUpdated.setValue(obj.dataUpdated, -1);
+    dataEditorNamespace.setValue(obj.dataNamespace, -1);
+    dataEditorRequest.setValue(obj.dataRequest, -1);
+    dataEditorAuthorizer.setValue(obj.dataAuthorizer, -1);
   } catch (error) {
     console.error(error);
   }
@@ -160,12 +181,18 @@ const shareButton = document.getElementById("share");
 const copyButton = document.getElementById("copy");
 const originalResourceButton = document.getElementById("original-resource-button");
 const updatedResourceButton = document.getElementById("updated-resource-button");
+const namespaceButton = document.getElementById("namespace-button");
+const requestButton = document.getElementById("request-button");
+const authorizerButton = document.getElementById("authorizer-button");
 
 runButton.addEventListener("click", run);
 shareButton.addEventListener("click", share);
 copyButton.addEventListener("click", copy);
 originalResourceButton.addEventListener("click", (event) => {showTab(event, "original-resource-tab")})
 updatedResourceButton.addEventListener("click", (event) => {showTab(event, "updated-resource-tab")})
+namespaceButton.addEventListener("click", (event) => {showTab(event, "namespace-tab")})
+requestButton.addEventListener("click", (event) => {showTab(event, "request-tab")})
+authorizerButton.addEventListener("click", (event) => {showTab(event, "authorizer-tab")})
 document.addEventListener("keydown", (event) => {
   if ((event.ctrlKey || event.metaKey) && event.code === "Enter") {
     run();
@@ -193,6 +220,9 @@ fetch("../assets/validating_data.json")
           celEditor.setValue(example.vap, -1);
           dataEditorOriginal.setValue(example.dataOriginal, -1);
           dataEditorUpdated.setValue(example.dataUpdated, -1);
+          dataEditorNamespace.setValue(example.dataNamespace, -1);
+          dataEditorRequest.setValue(example.dataRequest, -1);
+          dataEditorAuthorizer.setValue(example.dataAuthorizer, -1);
         }
       } else {
         examplesList.appendChild(option);
@@ -208,6 +238,9 @@ fetch("../assets/validating_data.json")
       celEditor.setValue(example.vap, -1);
       dataEditorOriginal.setValue(example.dataOriginal, -1);
       dataEditorUpdated.setValue(example.dataUpdated, -1);
+      dataEditorNamespace.setValue(example.dataNamespace, -1);
+      dataEditorRequest.setValue(example.dataRequest, -1);
+      dataEditorAuthorizer.setValue(example.dataAuthorizer, -1);
     });
   })
   .catch((err) => {

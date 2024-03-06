@@ -12,6 +12,6 @@ spec:
       resources:   ["deployments"]
   variables:
     - name: labels
-      expression: "object.metadata.labels"
+      expression: "object.spec.template.metadata.labels"
   validations:
     - expression: "'foo' in variables.labels"

@@ -27,11 +27,27 @@ const EDITOR_DEFAULTS = {
     theme: "ace/theme/clouds",
     mode: "ace/mode/javascript",
   },
+  "webhooks-input": {
+    theme: "ace/theme/clouds",
+    mode: "ace/mode/javascript",
+  },
   "data-input-original": {
     theme: "ace/theme/clouds",
     mode: "ace/mode/yaml",
   },
   "data-input-updated": {
+    theme: "ace/theme/clouds",
+    mode: "ace/mode/yaml",
+  },
+  "data-input-namespace": {
+    theme: "ace/theme/clouds",
+    mode: "ace/mode/yaml",
+  },
+  "data-input-request": {
+    theme: "ace/theme/clouds",
+    mode: "ace/mode/yaml",
+  },
+  "data-input-authorizer": {
     theme: "ace/theme/clouds",
     mode: "ace/mode/yaml",
   },
