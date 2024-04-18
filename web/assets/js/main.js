@@ -46,7 +46,12 @@ function run() {
   output.value = "Evaluating...";
   setCost("");
 
-  const result = eval(expression, data);
+  const input = new Object()
+  input["cel"] = expression
+  input["dataInput"] = data
+
+  const mode = "cel"
+  const result = eval(mode, input);
 
   const { output: resultOutput, isError } = result;
 

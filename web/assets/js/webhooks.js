@@ -36,15 +36,20 @@ const dataEditorRequest = new AceEditor("data-input-request");
 const dataEditorAuthorizer = new AceEditor("data-input-authorizer");
 
 function run() {
-  const dataOriginal = dataEditorOriginal.getValue();
-  const dataUpdated = dataEditorUpdated.getValue();
-  const dataRequest = dataEditorRequest.getValue();
-  const dataAuthorizer = dataEditorAuthorizer.getValue();
   const expression = celEditor.getValue();
   const output = document.getElementById("output");
 
   output.value = "Evaluating...";
-  const result = webhookEval(expression, dataOriginal, dataUpdated, dataRequest, dataAuthorizer);
+
+  const input = new Object()
+  input["webhooks"] = expression
+  input["dataOriginal"] = dataEditorOriginal.getValue()
+  input["dataUpdated"] = dataEditorUpdated.getValue()
+  input["dataRequest"] = dataEditorRequest.getValue()
+  input["dataAuthorizer"] = dataEditorAuthorizer.getValue()
+
+  const mode = "webhooks"
+  const result = eval(mode, input);
 
   const { output: resultOutput, isError } = result;
   if (isError) {

@@ -37,16 +37,21 @@ const dataEditorRequest = new AceEditor("data-input-request");
 const dataEditorAuthorizer = new AceEditor("data-input-authorizer");
 
 function run() {
-  const dataOriginal = dataEditorOriginal.getValue();
-  const dataUpdated = dataEditorUpdated.getValue();
-  const dataNamespace = dataEditorNamespace.getValue();
-  const dataRequest = dataEditorRequest.getValue();
-  const dataAuthorizer = dataEditorAuthorizer.getValue();
   const expression = celEditor.getValue();
   const output = document.getElementById("output");
 
   output.value = "Evaluating...";
-  const result = vapEval(expression, dataOriginal, dataUpdated, dataNamespace, dataRequest, dataAuthorizer);
+
+  const input = new Object()
+  input["vap"] = expression
+  input["dataOriginal"] = dataEditorOriginal.getValue()
+  input["dataUpdated"] = dataEditorUpdated.getValue()
+  input["dataNamespace"] = dataEditorNamespace.getValue()
+  input["dataRequest"] = dataEditorRequest.getValue()
+  input["dataAuthorizer"] = dataEditorAuthorizer.getValue()
+
+  const mode = "vap"
+  const result = eval(mode, input);
 
   const { output: resultOutput, isError } = result;
   if (isError) {
